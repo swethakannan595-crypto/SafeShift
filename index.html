@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeShift — Multi-Modal Worker Safety Monitor</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+  --steel-dark:#26292C;--steel:#34383C;--steel-light:#40454A;
+  --rivet:#171819;--amber:#F4B400;--red:#E23D28;--green:#4C9A6A;
+  --text:#ECE9E2;--text-dim:#9CA0A5;--text-muted:#6b6f73;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#1B1D1F;
+  background-image:
+    radial-gradient(ellipse at top,rgba(46,50,54,.5) 0%,transparent 60%),
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:100% 100%,40px 40px,40px 40px;
+  color:var(--text);font-family:Inter,sans-serif;min-height:100vh;padding:24px 16px 60px
+}
+body:before{
+  content:"";position:fixed;inset:0;
+  background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.35) 100%);
+  pointer-events:none;z-index:0
+}
+.wrap{max-width:1220px;margin:auto;position:relative;z-index:1}
+.hazard-strip{
+  height:8px;border-radius:2px;margin-bottom:16px;
+  background:repeating-linear-gradient(-45deg,var(--amber) 0 12px,transparent 12px 24px);
+  background-size:34px 8px;animation:hazardScroll .8s linear infinite;opacity:.85
+}
+@keyframes hazardScroll{to{background-position:34px 0}}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+h1{font-family:"Bebas Neue",sans-serif;font-size:38px;letter-spacing:2px;line-height:1}
+h1 .sub{display:block;font-family:Inter,sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--text-dim);margin-top:4px}
+.station-id{font-size:12px;color:var(--text-dim);text-align:right;line-height:1.6}
+.sys-bar{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:8px 14px;margin-bottom:14px;
+  background:var(--steel-dark);border:1px solid #141617;border-radius:4px;
+  font-size:11.5px;color:var(--text-muted);font-family:"JetBrains Mono",monospace
+}
+.sys-bar .sep{width:1px;height:14px;background:#3a3d40}
+.sys-bar .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:liveBlink 1.2s infinite}
+@keyframes liveBlink{0%,100%{opacity:1}50%{opacity:.2}}
+.demo-toggle{
+  margin-left:auto;padding:5px 14px;border-radius:3px;cursor:pointer;background:transparent;
+  border:1px solid #3a3d40;color:var(--text-dim);font-family:"JetBrains Mono",monospace;
+  font-size:11px;font-weight:600;letter-spacing:.5px
+}
+.demo-toggle:hover,.demo-toggle.active{border-color:var(--amber);color:var(--amber)}
+.demo-toggle.active{background:rgba(244,180,0,.12)}
+.module{
+  position:relative;background:linear-gradient(180deg,var(--steel),var(--steel-dark));
+  border:1px solid #141617;border-radius:6px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 6px 16px rgba(0,0,0,.35);
+  padding:18px
+}
+.rivet{position:absolute;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#6b7075,var(--rivet) 70%);box-shadow:0 1px 1px rgba(0,0,0,.6)}
+.rivet.tl{top:7px;left:7px}.rivet.tr{top:7px;right:7px}.rivet.bl{bottom:7px;left:7px}.rivet.br{bottom:7px;right:7px}
+
+.model-title{font-family:"Bebas Neue";font-size:16px;letter-spacing:1px;margin-bottom:8px}
+.model-help{font-family:Inter;font-size:11px;color:var(--text-muted);font-weight:400}
+.url-bar{
+  padding:10px 14px;background:var(--steel-dark);border:1px solid #141617;border-radius:4px
+}
+.url-bar label{display:block;font-size:10px;color:var(--text-muted);font-family:"JetBrains Mono";letter-spacing:.5px;margin-bottom:6px}
+.url-bar input{
+  width:100%;padding:8px 10px;background:#17191a;border:1px solid #2a2d30;border-radius:3px;
+  color:var(--text);font-family:"JetBrains Mono";font-size:11px;outline:none
+}
+.url-bar input:focus{border-color:var(--amber)}
+.url-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.action-btn{
+  padding:8px 12px;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#3c4145,#2a2d30);
+  border:1px solid #16181a;color:var(--text);font-size:11px;font-weight:600
+}
+.action-btn:hover{border-color:var(--amber)}
+.action-btn.primary{border-color:#567b63;color:#b9e2c8}
+.action-btn.danger{border-color:#6a2920;color:#ff8a70}
+.model-status{margin-top:8px;font:10.5px "JetBrains Mono";color:var(--text-muted)}
+.model-status.ok{color:var(--green)}.model-status.err{color:var(--red)}
+
+.beacon-console{display:flex;align-items:center;gap:24px}
+.beacon-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+.beacon-housing{
+  position:relative;width:100%;height:100%;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#4a4f54,#1c1e20 75%);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;z-index:1
+}
+.beacon-dome{
+  width:66px;height:66px;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#6fdc9a 0%,var(--green) 55%,#2d6b47 100%);
+  box-shadow:0 0 18px 6px rgba(76,154,106,.55),inset 0 -6px 10px rgba(0,0,0,.3),inset 0 4px 8px rgba(255,255,255,.25)
+}
+.beacon-housing.warning .beacon-dome{
+  background:radial-gradient(circle at 38% 32%,#ffd766 0%,var(--amber) 55%,#8a6300 100%);
+  box-shadow:0 0 18px 6px rgba(244,180,0,.6),inset 0 -6px 10px rgba(0,0,0,.3)
+}
+.beacon-housing.high-risk .beacon-dome,.beacon-housing.emergency .beacon-dome{
+  background:radial-gradient(circle at 38% 32%,#ff8a70 0%,var(--red) 55%,#7a1c0f 100%);
+  box-shadow:0 0 18px 6px rgba(226,61,40,.65),inset 0 -6px 10px rgba(0,0,0,.3)
+}
+.beacon-housing.emergency .beacon-dome{animation:domePulse .8s infinite}
+@keyframes domePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.beacon-sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(255,255,255,.3),transparent 35%);animation:sweep 2.4s linear infinite;opacity:.4}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.beacon-ring{position:absolute;inset:-8px;border-radius:50%;border:1.5px solid var(--green);opacity:0;animation:ringPulse 2.8s ease-out infinite;pointer-events:none}
+.beacon-ring:nth-child(2){animation-delay:.9s}.beacon-ring:nth-child(3){animation-delay:1.8s}
+.beacon-wrap.warning .beacon-ring{border-color:var(--amber)}
+.beacon-wrap.high-risk .beacon-ring,.beacon-wrap.emergency .beacon-ring{border-color:var(--red)}
+@keyframes ringPulse{0%{transform:scale(.85);opacity:.45}100%{transform:scale(1.9);opacity:0}}
+.beacon-readout{flex:1;min-width:0}
+.status-label{font-family:"Bebas Neue";font-size:44px;letter-spacing:1.5px;line-height:1;color:var(--green)}
+.status-label.warning{color:var(--amber)}.status-label.high-risk,.status-label.emergency{color:var(--red)}
+.status-reason{margin-top:6px;font-size:13.5px;color:var(--text-dim);line-height:1.4}
+.status-time{margin-top:4px;font:10.5px "JetBrains Mono";color:var(--text-muted);letter-spacing:.5px}
+
+.camera-module{margin-top:14px}
+.camera-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.camera-title{font-family:"Bebas Neue";font-size:17px;letter-spacing:1px}
+.camera-controls{display:flex;gap:7px;flex-wrap:wrap}
+.camera-wrap{
+  position:relative;background:#000;border:1px solid #141617;border-radius:4px;
+  min-height:280px;overflow:hidden
+}
+.camera-wrap video{width:100%;max-height:420px;object-fit:cover;display:block}
+.camera-idle{height:280px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font:12px "JetBrains Mono"}
+.live-badge{position:absolute;top:7px;left:7px;z-index:3;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:3px 6px;border-radius:2px;letter-spacing:1px;display:none}
+.live-badge.active{display:block}
+.camera-info{
+  position:absolute;bottom:7px;left:7px;right:7px;z-index:3;
+  display:flex;justify-content:space-between;gap:8px;font:10px "JetBrains Mono";color:rgba(255,255,255,.7)
+}
+.camera-error{margin-top:8px;color:var(--red);font-size:11px;display:none}
+
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0}
+.panel-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px}
+.panel-name{font-family:"Bebas Neue";font-size:16px;letter-spacing:1px}
+.panel-right{display:flex;align-items:center;gap:8px}
+.led{width:8px;height:8px;border-radius:50%;background:#3a3d40}
+.led.on{background:var(--green);box-shadow:0 0 6px 2px rgba(76,154,106,.7)}
+.led.warn{background:var(--amber);box-shadow:0 0 6px 2px rgba(244,180,0,.5)}
+.led.danger{background:var(--red);box-shadow:0 0 6px 2px rgba(226,61,40,.5)}
+.feed-wrap{position:relative;border-radius:4px;overflow:hidden;background:#000;border:1px solid #141617;min-height:72px}
+.feed-idle{height:72px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:11px}
+.result-box{padding:10px 0 2px}
+.result-class{font-size:13px;font-weight:700}
+.result-class.safe{color:var(--green)}.result-class.risk{color:var(--red)}.result-class.neutral{color:var(--text-dim)}
+.conf-row{display:flex;align-items:center;gap:8px;margin-top:7px}
+.conf-track{height:7px;flex:1;background:#17191a;border-radius:5px;overflow:hidden}
+.conf-fill{height:100%;width:0;background:var(--green);transition:width .25s}
+.conf-fill.warn{background:var(--amber)}.conf-fill.danger{background:var(--red)}
+.conf-text{font:11px "JetBrains Mono";width:42px;text-align:right;color:var(--text-dim)}
+.top-list{margin-top:8px;border-top:1px solid #25282a;padding-top:7px}
+.top-item{display:flex;justify-content:space-between;gap:5px;font:9.5px "JetBrains Mono";color:var(--text-muted);padding:2px 0}
+.panel-note{margin-top:8px;font-size:10px;color:var(--text-muted);line-height:1.4}
+
+.log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.log-title{font-family:"Bebas Neue";font-size:17px;letter-spacing:1px}
+.log-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.log-count{font:11px "JetBrains Mono";color:var(--text-dim)}
+.log-filter,.clear-btn{
+  padding:3px 8px;border-radius:3px;font-size:10.5px;cursor:pointer;background:transparent;
+  border:1px solid #3a3d40;color:var(--text-dim);font-family:"JetBrains Mono"
+}
+.log-filter:hover,.log-filter.active{border-color:var(--text-dim);color:var(--text)}
+.clear-btn:hover{border-color:var(--red);color:var(--red)}
+.log-list{max-height:230px;overflow-y:auto;background:#17191a;border-radius:4px;border:1px solid #0f1112}
+.log-empty{padding:16px;color:var(--text-dim);font-size:12.5px;text-align:center}
+.log-row{display:grid;grid-template-columns:78px 90px 1fr;gap:8px;padding:8px 12px;font-size:12px;border-bottom:1px solid #0f1112}
+.log-row .t{color:var(--text-muted);font:11px "JetBrains Mono"}
+.log-row .s{font-weight:700;font-size:11px}
+.log-row .s.warning{color:var(--amber)}.log-row .s.high-risk,.log-row .s.emergency{color:var(--red)}
+
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;border-radius:4px;font-size:12.5px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.6);display:flex;gap:8px;max-width:380px}
+.toast.warning{background:#332a00;border-left:3px solid var(--amber);color:var(--amber)}
+.toast.high-risk,.toast.emergency{background:#331010;border-left:3px solid var(--red);color:var(--red)}
+
+.active-alert{
+  display:none; margin-bottom:12px; padding:12px 14px; border-radius:5px;
+  background:#17191a; border:1px solid #2c3033; box-shadow:0 4px 18px rgba(0,0,0,.25)
+}
+.active-alert.show{display:block}
+.active-alert.warning{border-color:rgba(244,180,0,.55);background:linear-gradient(90deg,#332a00,#17191a)}
+.active-alert.high-risk,.active-alert.emergency{border-color:rgba(226,61,40,.65);background:linear-gradient(90deg,#331010,#17191a)}
+.alert-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.alert-badge{font:11px "JetBrains Mono";font-weight:700;letter-spacing:.8px}
+.alert-badge.warning{color:var(--amber)}.alert-badge.high-risk,.alert-badge.emergency{color:var(--red)}
+.alert-main{margin-top:5px;font-size:13px;font-weight:700}
+.alert-meta{margin-top:4px;color:var(--text-muted);font:10px "JetBrains Mono"}
+.alert-actions{display:flex;gap:6px}
+.alert-btn,.export-btn{
+  border:1px solid #3a3d40;background:transparent;color:var(--text-dim);
+  padding:5px 9px;border-radius:3px;cursor:pointer;font:10px "JetBrains Mono"
+}
+.alert-btn:hover,.export-btn:hover{border-color:var(--text);color:var(--text)}
+.alert-btn.ack{border-color:var(--amber);color:var(--amber)}
+.log-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.log-stat{padding:5px 8px;background:#1d2022;border:1px solid #292d30;border-radius:3px;font:10px "JetBrains Mono";color:var(--text-dim)}
+.log-stat b{color:var(--text)}
+.log-row{
+  display:grid;grid-template-columns:92px 86px 120px 1fr 74px;gap:8px;
+  padding:9px 12px;font-size:11.5px;border-bottom:1px solid #0f1112;align-items:center
+}
+.log-row:hover{background:#1b1e20}
+.log-row .t{color:var(--text-muted);font:10px "JetBrains Mono"}
+.log-row .s{font-weight:700;font-size:10.5px}
+.log-row .source{color:var(--text-dim);font:10px "JetBrains Mono"}
+.log-row .conf{font:10px "JetBrains Mono";color:var(--text-muted);text-align:right}
+.log-row .ack{font-size:9px;color:var(--green);text-align:right}
+.log-row .s.warning{color:var(--amber)}.log-row .s.high-risk,.log-row .s.emergency{color:var(--red)}
+.log-header-row{
+  display:grid;grid-template-columns:92px 86px 120px 1fr 74px;gap:8px;
+  padding:6px 12px;background:#111314;color:var(--text-muted);font:9px "JetBrains Mono";letter-spacing:.5px
+}
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 14px;border-radius:4px;font-size:12.5px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.6);display:flex;gap:10px;max-width:400px;min-width:280px}
+.toast .toast-title{display:block;font-size:10px;letter-spacing:1px;margin-bottom:3px}
+.toast .toast-reason{display:block;line-height:1.35}
+.toast.warning{background:#332a00;border-left:3px solid var(--amber);color:var(--amber)}
+.toast.high-risk,.toast.emergency{background:#331010;border-left:3px solid var(--red);color:var(--red)}
+@media(max-width:700px){
+  .log-header-row{display:none}
+  .log-row{grid-template-columns:72px 82px 1fr;gap:6px}
+  .log-row .source,.log-row .conf,.log-row .ack{grid-column:3}
+  .log-row .source{font-size:9px}
+  .log-row .conf{text-align:left}
+  .log-row .ack{text-align:left}
+}
+
+footer{margin-top:16px;font-size:11px;color:var(--text-muted);line-height:1.7}
+code{background:#17191a;padding:1px 5px;border-radius:3px;font:10.5px "JetBrains Mono"}
+@media(max-width:600px){
+  body{padding:14px 8px 40px}h1{font-size:30px}.beacon-console{gap:16px}
+  .beacon-wrap{width:76px;height:76px}.beacon-dome{width:50px;height:50px}
+  .status-label{font-size:34px}.log-row{grid-template-columns:60px 72px 1fr;font-size:11px}
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<header>
+  <h1>SAFESHIFT<span class="sub">MULTI-MODAL WORKER SAFETY MONITOR</span></h1>
+  <div class="station-id">STATION 04<br>LOADING BAY</div>
+</header>
+
+<div class="hazard-strip"></div>
+
+<div class="sys-bar">
+  <div class="dot"></div>
+  <span>SYSTEM ONLINE</span>
+  <div class="sep"></div>
+  <span>UPTIME <span id="uptime">00:00:00</span></span>
+  <div class="sep"></div>
+  <span>VISION <span id="visionState">OFFLINE</span></span>
+  <div class="sep"></div>
+  <span>FUSION <span id="fusionRate">—</span></span>
+  <button class="demo-toggle" id="demoBtn"><i class="fas fa-flask"></i> DEMO MODE</button>
+</div>
+
+<!-- MODEL -->
+<div class="module">
+  <div class="rivet tl"></div><div class="rivet tr"></div>
+  <div class="rivet bl"></div><div class="rivet br"></div>
+
+  <div class="model-title">
+    TEACHABLE MACHINE MODEL
+    <span class="model-help">— 8-class worker safety image classifier</span>
+  </div>
+
+  <div class="url-bar">
+    <label>MODEL URL</label>
+    <input id="modelUrl"
+      value="https://teachablemachine.withgoogle.com/models/8ayWSF8LZ/"
+      placeholder="https://teachablemachine.withgoogle.com/models/XXXXX/">
+    <div class="url-actions">
+      <button class="action-btn primary" id="loadModelBtn"><i class="fas fa-download"></i> LOAD MODEL</button>
+      <button class="action-btn danger" id="stopAllBtn"><i class="fas fa-stop"></i> STOP ALL</button>
+    </div>
+    <div class="model-status" id="modelStatus">Model not loaded.</div>
+  </div>
+</div>
+
+<!-- MAIN BEACON -->
+<div class="module" style="margin-top:14px">
+  <div class="rivet tl"></div><div class="rivet tr"></div>
+  <div class="rivet bl"></div><div class="rivet br"></div>
+
+  <div class="beacon-console">
+    <div class="beacon-wrap" id="beaconWrap">
+      <div class="beacon-ring"></div><div class="beacon-ring"></div><div class="beacon-ring"></div>
+      <div class="beacon-housing" id="beaconHousing">
+        <div class="beacon-sweep"></div>
+        <div class="beacon-dome"></div>
+      </div>
+    </div>
+    <div class="beacon-readout">
+      <div class="status-label" id="statusLabel">STANDBY</div>
+      <div class="status-reason" id="statusReason">Load the model and start the camera to begin monitoring.</div>
+      <div class="status-time" id="statusTime">— AWAITING INPUT —</div>
+    </div>
+  </div>
+</div>
+
+<!-- SHARED CAMERA -->
+<div class="module camera-module">
+  <div class="rivet tl"></div><div class="rivet tr"></div>
+  <div class="rivet bl"></div><div class="rivet br"></div>
+
+  <div class="camera-head">
+    <div class="camera-title">WORKER VISION // SHARED CAMERA</div>
+    <div class="camera-controls">
+      <button class="action-btn primary" id="startCameraBtn"><i class="fas fa-camera"></i> START CAMERA</button>
+      <button class="action-btn danger" id="stopCameraBtn"><i class="fas fa-camera-slash"></i> STOP CAMERA</button>
+    </div>
+  </div>
+
+  <div class="camera-wrap">
+    <div class="live-badge" id="liveBadge">LIVE</div>
+    <video id="camera" autoplay muted playsinline></video>
+    <div class="camera-idle" id="cameraIdle"><i class="fas fa-video-slash" style="margin-right:7px"></i> CAMERA IDLE</div>
+    <div class="camera-info">
+      <span id="cameraLabel">SAFE SHIFT VISION</span>
+      <span id="cameraTime">—</span>
+    </div>
+  </div>
+  <div class="camera-error" id="cameraError"></div>
+</div>
+
+<!-- SENSOR PANELS -->
+<div class="panels" id="panelsGrid"></div>
+
+<!-- ACTIVE ALERT -->
+<div class="active-alert" id="activeAlert">
+  <div class="alert-top">
+    <div>
+      <div class="alert-badge" id="alertBadge">ACTIVE ALERT</div>
+      <div class="alert-main" id="alertMain">Monitoring alert</div>
+      <div class="alert-meta" id="alertMeta">—</div>
+    </div>
+    <div class="alert-actions">
+      <button class="alert-btn ack" id="ackAlert">ACKNOWLEDGE</button>
+    </div>
+  </div>
+</div>
+
+<!-- INCIDENT LOG -->
+<div class="module">
+  <div class="rivet tl"></div><div class="rivet tr"></div>
+  <div class="rivet bl"></div><div class="rivet br"></div>
+
+  <div class="log-head">
+    <div class="log-title">INCIDENT LOG</div>
+    <div class="log-actions">
+      <button class="log-filter active" data-filter="all">ALL</button>
+      <button class="log-filter" data-filter="warning">WARN</button>
+      <button class="log-filter" data-filter="high-risk">RISK</button>
+      <button class="log-filter" data-filter="emergency">EMER</button>
+      <div class="log-count" id="logCount">0 EVENTS</div>
+      <button class="export-btn" id="exportLog"><i class="fas fa-file-csv"></i> EXPORT</button>
+      <button class="clear-btn" id="clearLog"><i class="fas fa-trash-can"></i> CLEAR</button>
+    </div>
+  </div>
+
+  <div class="log-summary">
+    <div class="log-stat">TOTAL <b id="totalEvents">0</b></div>
+    <div class="log-stat">WARN <b id="warningEvents">0</b></div>
+    <div class="log-stat">RISK <b id="riskEvents">0</b></div>
+    <div class="log-stat">EMERGENCY <b id="emergencyEvents">0</b></div>
+  </div>
+
+  <div class="log-list" id="logList">
+    <div class="log-empty">No events logged yet.</div>
+  </div>
+</div>
+
+<footer>
+  <strong>8-class model expected:</strong>
+  with helmet, without helmet, with mask, without mask,
+  with id, without id, correct pose, incorrect pose.<br>
+  The supplied Teachable Machine model is an <strong>8-class image classifier</strong>. Incident history is saved in this browser using localStorage; EXPORT creates a CSV file.
+  Therefore helmet, mask, ID and pose panels use the same shared camera prediction.
+  Distress/audio is represented as a browser-side demo sensor because this model does not contain an audio class.
+</footer>
+
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<script>
+"use strict";
+
+/* =========================================================
+   SAFESHIFT CONFIGURATION
+   ========================================================= */
+
+const DEFAULT_MODEL_URL =
+  "https://teachablemachine.withgoogle.com/models/8ayWSF8LZ/";
+
+const RISK_THRESHOLD = 0.60;
+const HIGH_RISK_THRESHOLD = 0.78;
+const STABLE_FRAMES = 2;
+
+const CLASSES = {
+  helmetSafe: ["with helmet"],
+  helmetRisk: ["without helmet"],
+
+  maskSafe: ["with mask"],
+  maskRisk: ["without mask"],
+
+  idSafe: ["with id", "with ID", "with id card"],
+  idRisk: ["without id", "without ID", "without id card"],
+
+  poseSafe: ["correct pose"],
+  poseRisk: ["incorrect pose"]
+};
+
+const SENSOR_DEFS = [
+  {
+    key:"helmet", name:"PPE // HELMET",
+    safe:CLASSES.helmetSafe, risk:CLASSES.helmetRisk,
+    note:"Detects helmet compliance from the shared camera."
+  },
+  {
+    key:"mask", name:"MASK // VISION",
+    safe:CLASSES.maskSafe, risk:CLASSES.maskRisk,
+    note:"Detects mask compliance from the shared camera."
+  },
+  {
+    key:"id", name:"ID BADGE // SCAN",
+    safe:CLASSES.idSafe, risk:CLASSES.idRisk,
+    note:"Detects ID badge presence from the shared camera."
+  },
+  {
+    key:"pose", name:"POSTURE // POSE",
+    safe:CLASSES.poseSafe, risk:CLASSES.poseRisk,
+    note:"Uses the image classifier's correct/incorrect pose classes."
+  },
+  {
+    key:"audio", name:"DISTRESS // AUDIO",
+    safe:["background","normal","no distress"],
+    risk:["distress","help","emergency"],
+    note:"Demo-only unless a separate audio model is connected."
+  }
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let model = null;
+let stream = null;
+let running = false;
+let demoMode = false;
+let animationId = null;
+let lastPredictions = [];
+let incidents = [];
+let lastStatus = "STANDBY";
+let alertAcknowledged = true;
+let currentAlert = null;
+let fusionCount = 0;
+
+try{
+  const saved = JSON.parse(localStorage.getItem("safeshift_incidents") || "[]");
+  incidents = Array.isArray(saved) ? saved.map(e => ({...e, time:new Date(e.time)})) : [];
+}catch(e){ incidents = []; }
+let startTime = Date.now();
+let lastFusionSecond = 0;
+let audioContext = null;
+
+const panelState = {};
+SENSOR_DEFS.forEach(s => {
+  panelState[s.key] = { running:false, result:null };
+});
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+const $ = id => document.getElementById(id);
+
+function pct(v){
+  return Math.round(v * 100) + "%";
+}
+
+function normalize(text){
+  return String(text || "").trim().toLowerCase().replace(/\s+/g," ");
+}
+
+function cleanUrl(url){
+  url = String(url || "").trim();
+  if(!url) return "";
+  if(!url.endsWith("/")) url += "/";
+  return url;
+}
+
+function matchesClass(className, list){
+  const c = normalize(className);
+  return list.some(x => normalize(x) === c);
+}
+
+function getPrediction(classList){
+  const found = lastPredictions.filter(p => matchesClass(p.className, classList));
+  if(!found.length) return null;
+  return found[0];
+}
+
+function safeClassName(sensor, result){
+  if(!result) return "neutral";
+  if(matchesClass(result.className, sensor.risk)) return "risk";
+  if(matchesClass(result.className, sensor.safe)) return "safe";
+  return "neutral";
+}
+
+/* =========================================================
+   BUILD SENSOR PANELS
+   ========================================================= */
+
+const grid = $("panelsGrid");
+
+SENSOR_DEFS.forEach(sensor => {
+  const el = document.createElement("div");
+  el.className = "module";
+
+  el.innerHTML = `
+    <div class="rivet tl"></div><div class="rivet tr"></div>
+    <div class="rivet bl"></div><div class="rivet br"></div>
+
+    <div class="panel-label">
+      <div class="panel-name">${sensor.name}</div>
+      <div class="panel-right">
+        <div class="led" id="led-${sensor.key}"></div>
+      </div>
+    </div>
+
+    <div class="feed-wrap">
+      <div class="feed-idle" id="idle-${sensor.key}">
+        <i class="fas fa-satellite-dish" style="margin-right:6px;opacity:.5"></i>
+        WAITING
+      </div>
+    </div>
+
+    <div class="result-box">
+      <div class="result-class neutral" id="class-${sensor.key}">—</div>
+
+      <div class="conf-row">
+        <div class="conf-track">
+          <div class="conf-fill" id="fill-${sensor.key}"></div>
+        </div>
+        <div class="conf-text" id="pct-${sensor.key}">0%</div>
+      </div>
+
+      <div class="top-list" id="top-${sensor.key}"></div>
+      <div class="panel-note">${sensor.note}</div>
+    </div>
+  `;
+
+  grid.appendChild(el);
+});
+
+/* =========================================================
+   MODEL LOADING
+   ========================================================= */
+
+$("loadModelBtn").addEventListener("click", loadModel);
+
+async function loadModel(){
+  const url = cleanUrl($("modelUrl").value || DEFAULT_MODEL_URL);
+  $("modelUrl").value = url;
+
+  $("modelStatus").className = "model-status";
+  $("modelStatus").textContent = "Loading model...";
+
+  try{
+    if(!window.tmImage){
+      throw new Error("Teachable Machine image library did not load.");
+    }
+
+    model = await tmImage.load(
+      url + "model.json",
+      url + "metadata.json"
+    );
+
+    const count = model.getTotalClasses
+      ? model.getTotalClasses()
+      : "?";
+
+    $("modelStatus").className = "model-status ok";
+    $("modelStatus").textContent =
+      "MODEL READY — " + count + " classes loaded.";
+
+    if(model.getClassLabels){
+      console.log("SafeShift model classes:", model.getClassLabels());
+    }
+
+  }catch(error){
+    model = null;
+    $("modelStatus").className = "model-status err";
+    $("modelStatus").textContent =
+      "MODEL LOAD ERROR — " + (error.message || error);
+
+    console.error("SafeShift model error:", error);
+  }
+}
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+
+$("startCameraBtn").addEventListener("click", startCamera);
+$("stopCameraBtn").addEventListener("click", stopCamera);
+
+async function startCamera(){
+  if(!model){
+    await loadModel();
+    if(!model) return;
+  }
+
+  if(running) return;
+
+  $("cameraError").style.display = "none";
+
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        width:{ideal:640},
+        height:{ideal:480},
+        facingMode:"user"
+      },
+      audio:false
+    });
+
+    const video = $("camera");
+    video.srcObject = stream;
+    await video.play();
+
+    running = true;
+    $("cameraIdle").style.display = "none";
+    video.style.display = "block";
+    $("liveBadge").classList.add("active");
+    $("visionState").textContent = "LIVE";
+
+    startAllVisionSensors();
+    inferenceLoop();
+
+  }catch(error){
+    console.error("Camera error:", error);
+
+    let message = "Camera could not be started.";
+
+    if(error.name === "NotAllowedError" || error.name === "PermissionDeniedError"){
+      message = "Camera permission was denied. Allow camera access in the browser and try again.";
+    }else if(error.name === "NotReadableError"){
+      message = "Camera is already being used by another app/tab. Close it and try again.";
+    }else if(error.name === "NotFoundError"){
+      message = "No camera was found on this device.";
+    }else if(location.protocol === "file:"){
+      message = "Camera access may be blocked when opening HTML directly. Run this page through localhost.";
+    }
+
+    $("cameraError").textContent = message;
+    $("cameraError").style.display = "block";
+  }
+}
+
+function stopCamera(){
+  running = false;
+
+  if(animationId){
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  if(stream){
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  $("camera").srcObject = null;
+  $("camera").style.display = "none";
+  $("cameraIdle").style.display = "flex";
+  $("liveBadge").classList.remove("active");
+  $("visionState").textContent = "OFFLINE";
+
+  SENSOR_DEFS.filter(s => s.key !== "audio").forEach(sensor => {
+    panelState[sensor.key].running = false;
+    panelState[sensor.key].result = null;
+    resetPanel(sensor.key);
+  });
+
+  lastPredictions = [];
+  runFusion();
+}
+
+/* =========================================================
+   VISION SENSOR SETUP
+   ========================================================= */
+
+function startAllVisionSensors(){
+  SENSOR_DEFS.filter(s => s.key !== "audio").forEach(sensor => {
+    panelState[sensor.key].running = true;
+    $("led-" + sensor.key).className = "led on";
+  });
+}
+
+/* =========================================================
+   INFERENCE
+   ========================================================= */
+
+async function inferenceLoop(){
+  if(!running || !model) return;
+
+  try{
+    const video = $("camera");
+
+    if(video.readyState >= 2){
+      lastPredictions = await model.predict(video);
+
+      updateVisionPanels();
+      runFusion();
+
+      $("cameraTime").textContent =
+        new Date().toLocaleTimeString([],{
+          hour:"2-digit",minute:"2-digit",second:"2-digit"
+        });
+    }
+
+  }catch(error){
+    console.error("Prediction error:", error);
+  }
+
+  if(running){
+    animationId = requestAnimationFrame(inferenceLoop);
+  }
+}
+
+function updateVisionPanels(){
+  SENSOR_DEFS.filter(s => s.key !== "audio").forEach(sensor => {
+    const result = getBestForSensor(sensor);
+
+    panelState[sensor.key].result = result;
+
+    if(result){
+      updatePanel(sensor.key, result);
+    }else{
+      resetPanel(sensor.key);
+    }
+  });
+}
+
+function getBestForSensor(sensor){
+  const relevant = lastPredictions.filter(p =>
+    sensor.safe.concat(sensor.risk).some(x =>
+      normalize(x) === normalize(p.className)
+    )
+  );
+
+  if(!relevant.length) return null;
+
+  return relevant.reduce((a,b) =>
+    a.probability > b.probability ? a : b
+  );
+}
+
+function updatePanel(key,result){
+  const sensor = SENSOR_DEFS.find(s => s.key === key);
+  const cls = safeClassName(sensor,result);
+  const fill = $("fill-" + key);
+  const label = $("class-" + key);
+  const led = $("led-" + key);
+
+  label.textContent = result.className;
+  label.className = "result-class " + cls;
+
+  fill.style.width = pct(result.probability);
+  fill.className = "conf-fill " +
+    (cls === "risk"
+      ? (result.probability >= HIGH_RISK_THRESHOLD ? "danger" : "warn")
+      : "");
+
+  $("pct-" + key).textContent = pct(result.probability);
+
+  if(cls === "risk"){
+    led.className =
+      "led " + (result.probability >= HIGH_RISK_THRESHOLD ? "danger" : "warn");
+  }else{
+    led.className = "led on";
+  }
+
+  const top = lastPredictions
+    .slice()
+    .sort((a,b) => b.probability - a.probability)
+    .slice(0,4);
+
+  $("top-" + key).innerHTML = top.map(p =>
+    `<div class="top-item">
+      <span>${escapeHtml(p.className)}</span>
+      <span>${pct(p.probability)}</span>
+    </div>`
+  ).join("");
+}
+
+function resetPanel(key){
+  $("class-" + key).textContent = "—";
+  $("class-" + key).className = "result-class neutral";
+  $("fill-" + key).style.width = "0%";
+  $("fill-" + key).className = "conf-fill";
+  $("pct-" + key).textContent = "0%";
+  $("top-" + key).innerHTML = "";
+  $("led-" + key).className = "led";
+}
+
+/* =========================================================
+   FUSION LOGIC
+   ========================================================= */
+
+function getVisionRisks(){
+  const risks = [];
+
+  SENSOR_DEFS.filter(s => s.key !== "audio").forEach(sensor => {
+    const result = panelState[sensor.key].result;
+
+    if(
+      result &&
+      matchesClass(result.className,sensor.risk) &&
+      result.probability >= RISK_THRESHOLD
+    ){
+      risks.push({
+        sensor,
+        result
+      });
+    }
+  });
+
+  return risks;
+}
+
+function fuseSignals(){
+  const risks = getVisionRisks();
+
+  if(demoMode && panelState.audio.result){
+    const audio = panelState.audio.result;
+    if(audio.probability >= RISK_THRESHOLD &&
+       matchesClass(audio.className,CLASSES.audioRisk || ["distress"])){
+      return {
+        status:"EMERGENCY",
+        reason:"Distress audio detected (" + pct(audio.probability) + ")"
+      };
+    }
+  }
+
+  if(!running && !demoMode){
+    return {
+      status:"STANDBY",
+      reason:"Load the model and start the camera to begin monitoring."
+    };
+  }
+
+  if(risks.length >= 2){
+    return {
+      status:"HIGH RISK",
+      reason:risks.map(r =>
+        r.sensor.name + " (" + pct(r.result.probability) + ")"
+      ).join(" + ")
+    };
+  }
+
+  if(risks.length === 1){
+    return {
+      status:"WARNING",
+      reason:
+        risks[0].sensor.name +
+        " — " +
+        risks[0].result.className +
+        " (" +
+        pct(risks[0].result.probability) +
+        ")"
+    };
+  }
+
+  if(running || demoMode){
+    return {
+      status:"SAFE",
+      reason:"All monitored vision parameters are nominal."
+    };
+  }
+
+  return {
+    status:"STANDBY",
+    reason:"Waiting for sensor data."
+  };
+}
+
+function runFusion(){
+  const result = fuseSignals();
+
+  let cls = "safe";
+  if(result.status === "WARNING") cls = "warning";
+  if(result.status === "HIGH RISK") cls = "high-risk";
+  if(result.status === "EMERGENCY") cls = "emergency";
+
+  $("beaconHousing").className = "beacon-housing " + cls;
+  $("beaconWrap").className = "beacon-wrap " + cls;
+
+  $("statusLabel").className = "status-label " + cls;
+  $("statusLabel").textContent = result.status;
+  $("statusReason").textContent = result.reason;
+  $("statusTime").innerHTML =
+    "LAST UPDATE — " + new Date().toLocaleTimeString();
+
+  fusionCount++;
+
+  const seconds = Math.floor((Date.now() - startTime)/1000);
+  if(seconds > 0 && seconds !== lastFusionSecond){
+    $("fusionRate").textContent =
+      Math.round(fusionCount / seconds) + "/s";
+    lastFusionSecond = seconds;
+  }
+
+  if(result.status === "SAFE" || result.status === "STANDBY"){
+    hideActiveAlert();
+  }
+
+  if(
+    result.status !== "SAFE" &&
+    result.status !== "STANDBY" &&
+    result.status !== lastStatus
+  ){
+    logIncident(result);
+    showActiveAlert(result);
+    showToast(result.status,result.reason);
+    playAlert(cls);
+  }
+
+  lastStatus = result.status;
+}
+
+/* =========================================================
+   DEMO MODE
+   ========================================================= */
+
+$("demoBtn").addEventListener("click",toggleDemo);
+
+function toggleDemo(){
+  demoMode = !demoMode;
+
+  $("demoBtn").classList.toggle("active",demoMode);
+  $("demoBtn").innerHTML = demoMode
+    ? '<i class="fas fa-flask"></i> DEMO ON'
+    : '<i class="fas fa-flask"></i> DEMO MODE';
+
+  if(demoMode){
+    startDemo();
+  }else{
+    stopDemo();
+  }
+}
+
+let demoTimer = null;
+
+function startDemo(){
+  stopCamera();
+
+  SENSOR_DEFS.forEach(sensor => {
+    panelState[sensor.key].running = true;
+    $("led-" + sensor.key).className = "led on";
+  });
+
+  $("visionState").textContent = "DEMO";
+
+  demoTick();
+
+  demoTimer = setInterval(demoTick,1800);
+}
+
+function stopDemo(){
+  if(demoTimer){
+    clearInterval(demoTimer);
+    demoTimer = null;
+  }
+
+  panelState.audio.result = null;
+  panelState.audio.running = false;
+
+  SENSOR_DEFS.forEach(sensor => {
+    panelState[sensor.key].running = false;
+    panelState[sensor.key].result = null;
+    resetPanel(sensor.key);
+  });
+
+  $("visionState").textContent = running ? "LIVE" : "OFFLINE";
+  runFusion();
+}
+
+function demoTick(){
+  const scenarios = [
+    {
+      helmet:["with helmet",.93],
+      mask:["with mask",.91],
+      id:["with id",.90],
+      pose:["correct pose",.92],
+      audio:["background",.94]
+    },
+    {
+      helmet:["without helmet",.84],
+      mask:["with mask",.89],
+      id:["with id",.91],
+      pose:["correct pose",.88],
+      audio:["background",.94]
+    },
+    {
+      helmet:["without helmet",.89],
+      mask:["without mask",.86],
+      id:["with id",.90],
+      pose:["correct pose",.91],
+      audio:["background",.95]
+    },
+    {
+      helmet:["with helmet",.91],
+      mask:["with mask",.90],
+      id:["without id",.83],
+      pose:["incorrect pose",.81],
+      audio:["background",.95]
+    }
+  ];
+
+  const scenario = scenarios[Math.floor(Math.random()*scenarios.length)];
+
+  Object.keys(scenario).forEach(key => {
+    const [className,probability] = scenario[key];
+
+    panelState[key].result = {
+      className,
+      probability
+    };
+
+    updatePanel(key,panelState[key].result);
+  });
+
+  runFusion();
+}
+
+/* =========================================================
+   INCIDENT LOG + ACTIVE ALERTS
+   ========================================================= */
+
+function severityRank(status){
+  if(status === "EMERGENCY") return 3;
+  if(status === "HIGH RISK") return 2;
+  if(status === "WARNING") return 1;
+  return 0;
+}
+
+function sourceFromReason(reason){
+  const text = String(reason || "");
+  if(text.includes("PPE")) return "PPE / HELMET";
+  if(text.includes("MASK")) return "MASK / VISION";
+  if(text.includes("ID BADGE")) return "ID BADGE";
+  if(text.includes("POSTURE")) return "POSTURE / POSE";
+  if(text.includes("Distress")) return "DISTRESS / AUDIO";
+  return "FUSION ENGINE";
+}
+
+function extractConfidence(reason){
+  const m = String(reason || "").match(/(\d+)%/);
+  return m ? m[1] + "%" : "—";
+}
+
+function saveIncidents(){
+  try{
+    localStorage.setItem("safeshift_incidents", JSON.stringify(incidents.slice(0,200)));
+  }catch(e){
+    console.warn("Could not save incident log:",e);
+  }
+}
+
+function logIncident(result){
+  const event = {
+    id:"SS-" + Date.now().toString(36).toUpperCase(),
+    time:new Date(),
+    status:result.status,
+    reason:result.reason,
+    source:sourceFromReason(result.reason),
+    confidence:extractConfidence(result.reason),
+    acknowledged:false
+  };
+
+  incidents.unshift(event);
+  if(incidents.length > 200) incidents.length = 200;
+  saveIncidents();
+
+  currentAlert = event;
+  alertAcknowledged = false;
+  renderLog();
+  showActiveAlert(result);
+}
+
+function updateLogStats(){
+  $("totalEvents").textContent = incidents.length;
+  $("warningEvents").textContent = incidents.filter(e => e.status === "WARNING").length;
+  $("riskEvents").textContent = incidents.filter(e => e.status === "HIGH RISK").length;
+  $("emergencyEvents").textContent = incidents.filter(e => e.status === "EMERGENCY").length;
+}
+
+function renderLog(){
+  const filter = document.querySelector(".log-filter.active")?.dataset.filter || "all";
+
+  const filtered = filter === "all"
+    ? incidents
+    : incidents.filter(e => e.status.toLowerCase().replace(" ","-") === filter);
+
+  $("logCount").textContent = incidents.length + " EVENTS";
+  updateLogStats();
+
+  if(!filtered.length){
+    $("logList").innerHTML =
+      `<div class="log-empty">${
+        incidents.length
+        ? "No events match this filter."
+        : "No safety incidents recorded."
+      }</div>`;
+    return;
+  }
+
+  $("logList").innerHTML = `
+    <div class="log-header-row">
+      <span>TIME</span><span>SEVERITY</span><span>SOURCE</span><span>DETAIL</span><span>STATE</span>
+    </div>
+    ${filtered.map(ev => {
+      const cls = ev.status.toLowerCase().replace(" ","-");
+      const time = new Date(ev.time).toLocaleTimeString([],{
+        hour:"2-digit",minute:"2-digit",second:"2-digit"
+      });
+      return `
+        <div class="log-row">
+          <div class="t">${time}</div>
+          <div class="s ${cls}">${escapeHtml(ev.status)}</div>
+          <div class="source">${escapeHtml(ev.source || "FUSION ENGINE")}</div>
+          <div style="color:var(--text-dim);font-size:11px">
+            ${escapeHtml(ev.reason)}
+            <div class="conf">CONFIDENCE ${escapeHtml(ev.confidence || "—")}</div>
+          </div>
+          <div class="ack">${ev.acknowledged ? "✓ ACK" : "OPEN"}</div>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+document.querySelectorAll(".log-filter").forEach(btn => {
+  btn.addEventListener("click",() => {
+    document.querySelectorAll(".log-filter")
+      .forEach(b => b.classList.remove("active"));
+
+    btn.classList.add("active");
+    renderLog();
+  });
+});
+
+$("clearLog").addEventListener("click",() => {
+  if(!incidents.length) return;
+  if(!confirm("Clear all recorded safety incidents?")) return;
+
+  incidents = [];
+  currentAlert = null;
+  alertAcknowledged = true;
+  saveIncidents();
+  renderLog();
+});
+
+$("exportLog").addEventListener("click",() => {
+  if(!incidents.length){
+    showToast("WARNING","There are no incidents to export.");
+    return;
+  }
+
+  const rows = [
+    ["Event ID","Date","Time","Severity","Source","Confidence","Reason","Acknowledged"]
+  ];
+
+  incidents.forEach(ev => {
+    const d = new Date(ev.time);
+    rows.push([
+      ev.id || "",
+      d.toLocaleDateString(),
+      d.toLocaleTimeString(),
+      ev.status || "",
+      ev.source || "",
+      ev.confidence || "",
+      ev.reason || "",
+      ev.acknowledged ? "Yes" : "No"
+    ]);
+  });
+
+  const csv = rows.map(row =>
+    row.map(value => `"${String(value).replace(/"/g,'""')}"`).join(",")
+  ).join("\n");
+
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "safeshift-incident-log-" +
+    new Date().toISOString().slice(0,10) + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function showActiveAlert(result){
+  const box = $("activeAlert");
+  const cls = result.status.toLowerCase().replace(" ","-");
+
+  box.className = "active-alert show " + cls;
+  $("alertBadge").className = "alert-badge " + cls;
+  $("alertBadge").textContent =
+    result.status === "EMERGENCY" ? "🚨 EMERGENCY ALERT" :
+    result.status === "HIGH RISK" ? "⚠ HIGH RISK ALERT" :
+    "⚠ SAFETY WARNING";
+
+  $("alertMain").textContent = result.reason;
+  $("alertMeta").textContent =
+    "DETECTED " + new Date().toLocaleTimeString() +
+    "  •  CONFIDENCE " + extractConfidence(result.reason);
+
+  const latestEvent = incidents[0];
+  $("ackAlert").disabled = Boolean(latestEvent && latestEvent.acknowledged);
+  $("ackAlert").textContent =
+    latestEvent && latestEvent.acknowledged ? "ACKNOWLEDGED" : "ACKNOWLEDGE";
+}
+
+function hideActiveAlert(){
+  $("activeAlert").className = "active-alert";
+  currentAlert = null;
+  alertAcknowledged = true;
+}
+
+$("ackAlert").addEventListener("click",() => {
+  const event = currentAlert || incidents[0];
+  if(!event) return;
+
+  event.acknowledged = true;
+  alertAcknowledged = true;
+  saveIncidents();
+  renderLog();
+
+  $("ackAlert").disabled = true;
+  $("ackAlert").textContent = "ACKNOWLEDGED";
+  $("alertMeta").textContent += "  •  ACKNOWLEDGED";
+});
+
+renderLog();
+hideActiveAlert();
+
+/* =========================================================
+   TOASTS + ALERTS
+   ========================================================= */
+
+function showToast(status,reason){
+  const toast = document.createElement("div");
+  const cls = status.toLowerCase().replace(" ","-");
+
+  const icon =
+    status === "EMERGENCY"
+      ? "fa-circle-exclamation"
+      : status === "HIGH RISK"
+      ? "fa-triangle-exclamation"
+      : "fa-circle-info";
+
+  toast.className = "toast " + cls;
+  toast.innerHTML =
+    `<i class="fas ${icon}"></i>
+     <div>
+       <span class="toast-title">${escapeHtml(status)}</span>
+       <span class="toast-reason">${escapeHtml(reason)}</span>
+     </div>`;
+
+  $("toasts").appendChild(toast);
+
+  setTimeout(() => toast.remove(),5000);
+}
+
+function playAlert(severity){
+  try{
+    if(!audioContext){
+      audioContext =
+        new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if(audioContext.state === "suspended"){
+      audioContext.resume();
+    }
+
+    if(severity === "warning"){
+      beep(520,.12,.12);
+    }else if(severity === "high-risk"){
+      beep(700,.15,.1);
+      setTimeout(() => beep(700,.15,.1),160);
+    }else if(severity === "emergency"){
+      for(let i=0;i<4;i++){
+        setTimeout(() => beep(900,.20,.08),i*130);
+      }
+    }
+  }catch(e){}
+}
+
+function beep(freq,volume,duration){
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  osc.type = "square";
+  osc.frequency.value = freq;
+
+  gain.gain.setValueAtTime(volume,audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(
+    .001,
+    audioContext.currentTime + duration
+  );
+
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+
+  osc.start();
+  osc.stop(audioContext.currentTime + duration + .01);
+}
+
+/* =========================================================
+   STOP ALL
+   ========================================================= */
+
+$("stopAllBtn").addEventListener("click",() => {
+  if(demoMode){
+    demoMode = false;
+    $("demoBtn").classList.remove("active");
+    $("demoBtn").innerHTML =
+      '<i class="fas fa-flask"></i> DEMO MODE';
+    stopDemo();
+  }
+
+  stopCamera();
+});
+
+/* =========================================================
+   UPTIME
+   ========================================================= */
+
+setInterval(() => {
+  const e = Date.now() - startTime;
+
+  const h = String(Math.floor(e/3600000)).padStart(2,"0");
+  const m = String(Math.floor((e%3600000)/60000)).padStart(2,"0");
+  const s = String(Math.floor((e%60000)/1000)).padStart(2,"0");
+
+  $("uptime").textContent = `${h}:${m}:${s}`;
+},1000);
+
+/* =========================================================
+   HTML ESCAPING
+   ========================================================= */
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
+$("camera").style.display = "none";
+runFusion();
+
+/* Try loading the supplied model automatically. */
+loadModel();
+
+</script>
+</body>
+</html>

@@ -8,6 +8,9 @@ SafeShift uses an 8-class Teachable Machine image classifier running on TensorFl
 
 ---
 
+<img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/9adcfd5a-3133-435c-b9e3-2b76292c6eef" />
+
+
 ## Overview
 
 Workplace safety incidents often stem from delayed detection — a missed hard hat, an unnoticed badge violation, a moment of risky posture that goes unmonitored. SafeShift addresses this by running lightweight AI inference directly in the browser, making real-time safety monitoring accessible without heavy backend infrastructure.
@@ -31,6 +34,9 @@ Workplace safety incidents often stem from delayed detection — a missed hard h
 3. Predictions are routed to the relevant safety panel (helmet, mask, ID, posture).
 4. Alerts are triggered based on classification results and severity thresholds.
 5. Events are logged, timestamped, and stored locally, with CSV export available.
+
+   <img width="1672" height="940" alt="image" src="https://github.com/user-attachments/assets/160c9fba-4bae-4083-9691-301c90179d97" />
+
 
 > **Note:** Distress/audio monitoring is represented as a demo sensor in the current build, since the supplied model does not include audio class.
 

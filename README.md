@@ -35,10 +35,13 @@ Workplace safety incidents often stem from delayed detection — a missed hard h
 4. Alerts are triggered based on classification results and severity thresholds.
 5. Events are logged, timestamped, and stored locally, with CSV export available.
 
-   <img width="1672" height="940" alt="image" src="https://github.com/user-attachments/assets/160c9fba-4bae-4083-9691-301c90179d97" />
+      <img width="1000" height="940" alt="image" src="https://github.com/user-attachments/assets/160c9fba-4bae-4083-9691-301c90179d97" />
 
 
 > **Note:** Distress/audio monitoring is represented as a demo sensor in the current build, since the supplied model does not include audio class.
+
+      <img width="900" height="250" alt="image" src="https://github.com/user-attachments/assets/1c05dadd-9243-4ecc-8a56-a76764921b9d" />
+
 
 ## Tech Stack
 

@@ -37,10 +37,12 @@ Workplace safety incidents often stem from delayed detection — a missed hard h
 
       <img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/160c9fba-4bae-4083-9691-301c90179d97" />
 
+      
+
+      <img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/1c05dadd-9243-4ecc-8a56-a76764921b9d" />
+
 
 > **Note:** Distress/audio monitoring is represented as a demo sensor in the current build, since the supplied model does not include audio class.
-
-   <img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/1c05dadd-9243-4ecc-8a56-a76764921b9d" />
 
 
 ## Tech Stack

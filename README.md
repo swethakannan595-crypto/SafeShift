@@ -4,7 +4,7 @@
 
 SafeShift uses an 8-class Teachable Machine image classifier running on TensorFlow.js to detect PPE, ID badge, and posture compliance from a live camera feed — entirely client-side, with real-time alerting and incident logging.
 
-🔗 **Live Demo:** [sunny-bombolone-3513db.netlify.app](https://sunny-bombolone-3513db.netlify.app/)
+🔗 **Live Demo:** https://deft-gaufre-28cf54.netlify.app/
 
 ---
 

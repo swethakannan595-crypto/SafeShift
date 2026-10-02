@@ -1,106 +1,138 @@
-# SafeShift — Multi-Modal Worker Safety Monitor
+# SafeShift: Multi-Modal Worker Safety Monitor
 
-**A browser-based computer vision system for real-time workplace safety monitoring.**
+![JavaScript](https://img.shields.io/badge/Frontend-HTML%20%2B%20CSS%20%2B%20JS-F7DF1E?logo=javascript&logoColor=black)
+![TensorFlow.js](https://img.shields.io/badge/AI-TensorFlow.js-FF6F00?logo=tensorflow&logoColor=white)
+![Teachable Machine](https://img.shields.io/badge/Model-Teachable%20Machine-4285F4?logo=google&logoColor=white)
+![Runs in browser](https://img.shields.io/badge/Inference-In%20the%20browser-16a34a)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-SafeShift uses an 8-class Teachable Machine image classifier running on TensorFlow.js to detect PPE, ID badge, and posture compliance from a live camera feed — entirely client-side, with real-time alerting and incident logging.
+A browser-based computer vision system for real-time workplace safety monitoring. SafeShift uses an 8-class Teachable Machine image classifier running on TensorFlow.js to check PPE, ID badge and posture compliance from a live camera feed, with real-time alerts and incident logging.
 
-🔗 **Live Demo:** https://safeshift.edgeone.dev/
+**Live demo:** https://safeshift.edgeone.dev/
+
+<img width="1630" height="964" alt="SafeShift main dashboard" src="https://github.com/user-attachments/assets/9adcfd5a-3133-435c-b9e3-2b76292c6eef" />
 
 ---
 
-<img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/9adcfd5a-3133-435c-b9e3-2b76292c6eef" />
-
-
 ## Overview
 
-Workplace safety incidents often stem from delayed detection — a missed hard hat, an unnoticed badge violation, a moment of risky posture that goes unmonitored. SafeShift addresses this by running lightweight AI inference directly in the browser, making real-time safety monitoring accessible without heavy backend infrastructure.
+Workplace safety incidents often stem from delayed detection: a missed hard hat, an unnoticed badge violation, a moment of risky posture that nobody is watching. SafeShift runs lightweight AI inference directly in the browser, so real-time safety monitoring needs no heavy backend infrastructure.
 
-## Features
+## Key Features
 
-- 🪖 **Helmet Detection** — flags missing PPE headgear
-- 😷 **Mask Detection** — monitors mask compliance
-- 🪪 **ID Badge Verification** — detects missing or unworn badges
-- 🧍 **Posture Monitoring** — flags incorrect/risky posture
-- 🚨 **Severity-Tiered Alerts** — Warning / Risk / Emergency classification
-- 📋 **Incident Logging** — timestamped event log with filtering (All / Warn / Risk / Emergency)
-- 📤 **CSV Export** — download incident history for reporting/audit
-- 💾 **Local Persistence** — incident data saved via `localStorage`
-- 🎥 **Shared Camera Feed** — a single camera stream powers all four detection panels
+- **Helmet detection.** Flags missing protective headgear.
+- **Mask detection.** Monitors mask compliance.
+- **ID badge verification.** Detects missing or unworn badges.
+- **Posture monitoring.** Flags incorrect or risky posture.
+- **Severity-tiered alerts.** Warning, Risk and Emergency classification.
+- **Incident logging.** Timestamped event log with filters for All, Warn, Risk and Emergency.
+- **CSV export.** Download incident history for reporting and audit.
+- **Local persistence.** Incident data is saved in the browser with `localStorage`.
+- **Shared camera feed.** A single camera stream powers all four detection panels.
+
+## Detection Panels
+
+| Panel | Classes detected | Purpose |
+|---|---|---|
+| Helmet | with helmet, without helmet | PPE headgear compliance |
+| Mask | with mask, without mask | Mask compliance |
+| ID badge | with id, without id | Badge verification |
+| Posture | correct pose, incorrect pose | Risky posture detection |
 
 ## How It Works
 
-1. A Teachable Machine model URL is loaded into the app (8-class image classifier: *with/without helmet, with/without mask, with/without ID, correct/incorrect pose*).
+```mermaid
+flowchart LR
+    A[Teachable Machine<br/>model URL] --> B[Load model<br/>TensorFlow.js]
+    C[Browser camera feed] --> D[Real-time inference]
+    B --> D
+    D --> E[Route predictions to panels<br/>helmet, mask, ID, posture]
+    E --> F[Severity check<br/>Warning / Risk / Emergency]
+    F --> G[Alert shown]
+    F --> H[Incident log<br/>localStorage]
+    H --> I[CSV export]
+```
+
+1. A Teachable Machine model URL is loaded into the app.
 2. The browser camera feed is passed through the TensorFlow.js runtime for real-time inference.
-3. Predictions are routed to the relevant safety panel (helmet, mask, ID, posture).
-4. Alerts are triggered based on classification results and severity thresholds.
-5. Events are logged, timestamped, and stored locally, with CSV export available.
+3. Predictions are routed to the relevant safety panel: helmet, mask, ID or posture.
+4. Alerts are triggered from the classification results and severity thresholds.
+5. Events are timestamped, stored locally and available for CSV export.
 
-      <img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/160c9fba-4bae-4083-9691-301c90179d97" />
+> **Note:** distress and audio monitoring is represented as a demo sensor in the current build, because the supplied model does not include an audio class.
 
-      
+## Screenshots
 
-      <img width="1630" height="964" alt="image" src="https://github.com/user-attachments/assets/1c05dadd-9243-4ecc-8a56-a76764921b9d" />
+<img width="1630" height="964" alt="SafeShift monitoring in operation" src="https://github.com/user-attachments/assets/160c9fba-4bae-4083-9691-301c90179d97" />
 
+<img width="1630" height="964" alt="SafeShift alerts and incident log" src="https://github.com/user-attachments/assets/1c05dadd-9243-4ecc-8a56-a76764921b9d" />
 
-> **Note:** Distress/audio monitoring is represented as a demo sensor in the current build, since the supplied model does not include audio class.
+## Model Schema
 
+The system expects an **8-class Teachable Machine image classifier** trained on these pairs:
+
+| Compliant | Non-compliant |
+|---|---|
+| with helmet | without helmet |
+| with mask | without mask |
+| with id | without id |
+| correct pose | incorrect pose |
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Frontend | HTML, CSS, JavaScript |
-| AI/ML | TensorFlow.js, Teachable Machine |
+| AI / ML | TensorFlow.js, Teachable Machine |
 | Storage | Browser `localStorage` |
-| Hosting | Netlify |
+| Hosting | Static web hosting |
 
 ## Getting Started
 
 ### Prerequisites
-- A modern web browser with camera access (Chrome/Edge/Firefox recommended)
-- A trained Teachable Machine image classification model (8-class, see model schema above) hosted and accessible via URL
 
-### Running Locally
+- A modern browser with camera access (Chrome, Edge or Firefox recommended)
+- A trained Teachable Machine image classification model (8 classes, see the schema above) hosted and reachable by URL
+- Node.js, only if you want to use `npx serve` for local hosting
+
+### Run locally
+
 ```bash
-# Clone the repository
-git clone https://github.com/swethakannan595-crypto/SafeShift/
-cd safeshift
+git clone https://github.com/swethakannan595-crypto/SafeShift.git
+cd SafeShift
 
 # Serve locally (any static server works)
 npx serve .
 ```
 
-Then open the local server URL in your browser, paste your Teachable Machine model URL into the app, click **Load Model**, and **Start Camera** to begin monitoring.
+### Use the app
 
-## Model Schema
-
-The system expects an **8-class Teachable Machine image classifier** trained on:
-
-```
-with helmet       | without helmet
-with mask         | without mask
-with id           | without id
-correct pose      | incorrect pose
-```
-
-## Roadmap
-
-- [ ] Improve detection accuracy with a more robust/custom-trained model
-- [ ] Add true audio-based distress detection
-- [ ] Multi-camera / multi-station support
-- [ ] Backend integration for centralized incident reporting
+1. Open the local server URL in your browser.
+2. Paste your Teachable Machine model URL into the app.
+3. Click **Load Model**.
+4. Click **Start Camera** to begin monitoring.
 
 ## Limitations
 
-- Runs in **demo mode** until a valid model URL is supplied
-- Currently supports a single shared camera feed per session
-- Detection accuracy is dependent on the quality of the underlying Teachable Machine model
+- Runs in demo mode until a valid model URL is supplied.
+- Supports a single shared camera feed per session.
+- Detection accuracy depends on the quality of the underlying Teachable Machine model.
+- Incident history is stored only in the current browser, so it is not shared across devices.
 
-## License
+## Roadmap
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
+- [ ] Improve detection accuracy with a more robust, custom-trained model
+- [ ] Add true audio-based distress detection
+- [ ] Support multiple cameras and stations
+- [ ] Add backend integration for centralized incident reporting
 
 ## Author
 
-Built by **Swetha K** — feel free to connect or reach out with feedback and suggestions.
+**Swetha Kannan**
+[GitHub](https://github.com/swethakannan595-crypto)
+
+Feedback and suggestions are welcome.
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE) for details.
